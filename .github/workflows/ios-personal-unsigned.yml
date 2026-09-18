@@ -1,0 +1,52 @@
+name: Build personal OpenVision IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      meta_mode:
+        description: Meta Developer Mode for personal testing, or registered app
+        type: choice
+        options:
+          - developer
+          - registered
+        default: developer
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      OPENVISION_META_MODE: ${{ inputs.meta_mode }}
+      DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+      META_APP_ID: ${{ secrets.META_APP_ID }}
+      CLIENT_TOKEN: ${{ secrets.META_CLIENT_TOKEN }}
+      PRODUCT_BUNDLE_IDENTIFIER: ${{ vars.OPENVISION_BUNDLE_ID || 'com.antoniorg00.openvision' }}
+      APP_LINK_URL_SCHEME: ${{ vars.OPENVISION_URL_SCHEME || 'openvision' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check personal configuration
+        run: bash scripts/build-personal-ipa.sh --check-config
+      - name: Install build tools
+        run: |
+          brew install xcodegen
+          xcodebuild -downloadComponent MetalToolchain
+          xcodebuild -version
+      - name: Build unsigned IPA
+        run: bash scripts/build-personal-ipa.sh
+      - name: Save IPA for personal installation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenVision-personal-unsigned
+          path: |
+            build/OpenVision-unsigned.ipa
+            build/OpenVision-unsigned.ipa.sha256
+            build/LEEME.txt
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
