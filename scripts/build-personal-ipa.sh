@@ -62,7 +62,9 @@ info.setdefault('NSLocalNetworkUsageDescription',
 services = info.setdefault('NSBonjourServices', [])
 if '_bonjour._tcp' not in services:
     services.append('_bonjour._tcp')
-Path('build/Info-personal.plist').write_bytes(plistlib.dumps(info, sort_keys=False))
+# This is a fresh CI checkout. Change only the app's input plist, so a global
+# INFOPLIST_FILE override cannot leak app metadata into Swift package bundles.
+Path('OpenVision/Resources/Info.plist').write_bytes(plistlib.dumps(info, sort_keys=False))
 PY
 xcodegen generate
 xcodebuild \
@@ -74,7 +76,6 @@ xcodebuild \
   -derivedDataPath build/DerivedData \
   -skipMacroValidation \
   -skipPackagePluginValidation \
-  INFOPLIST_FILE="$project_root/build/Info-personal.plist" \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
   build
 
